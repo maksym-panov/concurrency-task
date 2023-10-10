@@ -4,10 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiFunction;
 
 import static org.assertj.core.api.Assertions.*;
@@ -192,5 +189,40 @@ public class WorkQueueTest {
             "task1", "ask1", "sk1", "k1",
             "2ksat", "ksat", "sat", "at"
         ));
+    }
+
+    @Test
+    @DisplayName("Test with big amount of work")
+    void test() throws InterruptedException {
+        // given
+        List<Integer> tasks = new ArrayList<>();
+        var rand = new Random();
+
+        for (int i = 0; i < 1000; ++i) {
+            tasks.add(Math.abs(rand.nextInt()) % 50);
+        }
+
+        BiFunction<Integer, WorkQueue<Integer, Integer>, Integer> handler =
+                (t, wq) -> {
+                    try {
+                        Thread.sleep(t);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    return t;
+                };
+        var underTest = new WorkQueue<>(handler, 10000, 10, 10000);
+        var notEnoughWorkers = new WorkQueue<>(handler, 10000, 2, 10000);
+        // when
+        underTest.addAll(tasks);
+        var results = underTest.execute();
+        // then
+        assertThat(results).isNotNull();
+        assertThat(results).hasSize(tasks.size());
+        assertThat(results).isEqualTo(tasks);
+        // when
+        notEnoughWorkers.addAll(tasks);
+        // then
+        assertThatThrownBy(notEnoughWorkers::execute).isInstanceOf(IllegalStateException.class);
     }
 }
