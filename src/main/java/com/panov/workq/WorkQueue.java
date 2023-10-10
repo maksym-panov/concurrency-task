@@ -34,11 +34,9 @@ public class WorkQueue<T, R> {
         if (taskQueue.size() == maxQueueSize) {
             throw new IllegalStateException("Tasks queue limit is reached");
         }
+        int id = totalTasks.getAndIncrement();
         taskQueue.add(() ->
-            addResultToList(
-                handler.apply(task, this),
-                totalTasks.incrementAndGet()
-            )
+            addResultToList(handler.apply(task, this), id)
         );
     }
 
@@ -46,13 +44,12 @@ public class WorkQueue<T, R> {
         if (taskQueue.size() + tasks.size() > maxQueueSize) {
             throw new IllegalStateException("Tasks queue limit is reached");
         }
-        tasks.forEach(t ->
-            taskQueue.add(() ->
-                addResultToList(
-                    handler.apply(t, this),
-                    totalTasks.getAndIncrement()
-                )
-            )
+        tasks.forEach(t -> {
+                int id = totalTasks.getAndIncrement();
+                taskQueue.add(() ->
+                    addResultToList(handler.apply(t, this), id)
+                );
+            }
         );
     }
 
@@ -72,15 +69,12 @@ public class WorkQueue<T, R> {
         if (!terminated) {
             throw new IllegalStateException("Process has been executing too long");
         }
-//        if (!pool.isShutdown()) {
-//            if (pool.isTerminated()) {
-//                pool.shutdown();
-//            }
-//            throw new IllegalStateException("Process has been executing too long");
-//        }
 
-        resultsRaw.sort(Comparator.comparing(Pair::getId));
-        return resultsRaw.stream().map(rr -> rr.element).toList();
+        return resultsRaw
+                .stream()
+                .sorted(Comparator.comparing(Pair::getId))
+                .map(rr -> rr.element)
+                .toList();
     }
 
     private synchronized void addResultToList(R result, Integer id) {
