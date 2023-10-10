@@ -58,17 +58,20 @@ public class WorkQueue<T, R> {
 
     public List<R> execute() throws InterruptedException {
         ThreadPoolExecutor pool = new ThreadPoolExecutor(
-                1,
+                Math.min(3, maxWorkers),
                 maxWorkers,
                 0,
                 TimeUnit.MILLISECONDS,
                 taskQueue
         );
 
-        pool.prestartCoreThread();
+        pool.prestartAllCoreThreads();
+        pool.shutdown();
+        boolean terminated = pool.awaitTermination(executionTimeout, TimeUnit.MILLISECONDS);
 
-        Thread.sleep(3000);
-
+        if (!terminated) {
+            throw new IllegalStateException("Process has been executing too long");
+        }
 //        if (!pool.isShutdown()) {
 //            if (pool.isTerminated()) {
 //                pool.shutdown();

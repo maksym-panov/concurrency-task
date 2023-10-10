@@ -94,7 +94,7 @@ public class WorkQueueTest {
         String task = "task";
         BiFunction<String, WorkQueue<String, String>, String> handler = (t, wq) -> {
             try {
-                Thread.sleep(2000);
+                Thread.sleep(10000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -105,6 +105,9 @@ public class WorkQueueTest {
         underTest.add(task);
         // then
         assertThatThrownBy(underTest::execute).isInstanceOf(IllegalStateException.class);
+        // when
+        underTest.add(task);
+        // then
         assertThatThrownBy(underTest::execute).hasMessage("Process has been executing too long");
     }
 
@@ -130,9 +133,9 @@ public class WorkQueueTest {
         underTest.execute();
         // then
         Thread.sleep(1000);
-        assertThat(Thread.activeCount()).isEqualTo(1 + 2);
+        assertThat(Thread.activeCount()).isEqualTo(2);
         Thread.sleep(2000);
-        assertThat(Thread.activeCount()).isEqualTo(1 + 2);
+        assertThat(Thread.activeCount()).isEqualTo(2);
     }
 
     @Test
@@ -141,7 +144,7 @@ public class WorkQueueTest {
         // given
         int task1 = 200;
         int task2 = 400;
-        int task3 = 800;
+        int task3 = 600;
         int task4 = 500;
         BiFunction<Integer, WorkQueue<Integer, Integer>, Integer> handler = (t, wq) -> {
             try {
@@ -160,7 +163,7 @@ public class WorkQueueTest {
         assertThat(result).hasSize(4);
         assertThat(result.get(0)).isEqualTo(200);
         assertThat(result.get(1)).isEqualTo(400);
-        assertThat(result.get(2)).isEqualTo(800);
+        assertThat(result.get(2)).isEqualTo(600);
         assertThat(result.get(3)).isEqualTo(500);
     }
 
